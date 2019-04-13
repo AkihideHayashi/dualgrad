@@ -42,15 +42,12 @@ print(gradient_numerical(test_definer, (2.0, 3.0, 0.3), dx=1E-6))
 ```
 
 In this case,
-
-```math
 $$a = 2.0, b = 3.0, c = 0.3$$
 
 $$\mathrm{test\_function}(a, b, c) = 3.0$$
 
 $$\frac{\mathrm{d}(\mathrm{test\_function})}{\mathrm{d}a} = 2.1$$  
 $$\frac{\mathrm{d}(\mathrm{test\_function})}{\mathrm{d}b} = 0.6$$
-```
 
 You can dump your function to a file if you want.
 
@@ -114,10 +111,7 @@ print(y.grad)
 ```
 
 now,  
-
-```
 $\frac{d^2z}{dx^2} = 0.6$, $\frac{d^2z}{dxdy} = 0.3$, $\frac{d^2z}{dy^2} = 0.0$
-```
 
 While simple operators are implemented. You can skip function_difiner
 
