@@ -37,17 +37,21 @@ And we calculate numerical defferential only for tutorial.
 
 
 ```python
-print(test_definer(2.0, 3.0, 0.3))
-print(gradient_numerical(test_definer, (2.0, 3.0, 0.3), dx=1E-6))
+print(test_function(2.0, 3.0, 0.3))
+print(gradient_numerical(test_function, (2.0, 3.0, 0.3), dx=1E-6))
 ```
 
+    3.0
+    [2.1000000003379427, 0.6000000001282757, 9.999999999621423]
+
+
 In this case,
-$$a = 2.0, b = 3.0, c = 0.3$$
 
-$$\mathrm{test\_function}(a, b, c) = 3.0$$
 
-$$\frac{\mathrm{d}(\mathrm{test\_function})}{\mathrm{d}a} = 2.1$$  
-$$\frac{\mathrm{d}(\mathrm{test\_function})}{\mathrm{d}b} = 0.6$$
+a = 2.0, b = 3.0, c = 0.3
+test_function(a, b, c) = 3.0  
+d(test_function)/da = 2.1  
+d(test_function)/db = 0.6  
 
 You can dump your function to a file if you want.
 
@@ -65,6 +69,13 @@ from functions import test
 importlib.reload(functions)
 ```
 
+
+
+
+    <module 'functions' from '/Users/akihide/Documents/Development/dualgrad/Desktop/functions.py'>
+
+
+
 Now, you imported "test" that is compatible for this library.
 You can calculate differential of "test" quickly using BackNumber.
 
@@ -78,6 +89,13 @@ z
 ```
 
 
+
+
+    BackNumber(3.0)
+
+
+
+
 ```python
 z.backward()
 ```
@@ -87,6 +105,10 @@ z.backward()
 print(x.grad)
 print(y.grad)
 ```
+
+    2.1
+    0.6
+
 
 If you need part of hessian, you should use DualNumber to initialize BackNumber.
 
@@ -100,6 +122,13 @@ z
 ```
 
 
+
+
+    BackNumber(DualNumber(3.0, [2.1 0.6]))
+
+
+
+
 ```python
 z.backward()
 ```
@@ -110,8 +139,14 @@ print(x.grad)
 print(y.grad)
 ```
 
+    DualNumber(2.1, [0.6 0.3])
+    DualNumber(0.6, [0.3 0. ])
+
+
 now,  
-$\frac{d^2z}{dx^2} = 0.6$, $\frac{d^2z}{dxdy} = 0.3$, $\frac{d^2z}{dy^2} = 0.0$
+d^2z/dx^2 = 0.6  
+d^2z/dxdy = 0.3  
+d^2z/dy^2 = 0.0
 
 While simple operators are implemented. You can skip function_difiner
 
@@ -124,6 +159,13 @@ z
 ```
 
 
+
+
+    BackNumber(DualNumber(14.5, [7. 5.]))
+
+
+
+
 ```python
 z.backward()
 ```
@@ -134,9 +176,8 @@ print(x.grad)
 print(y.grad)
 ```
 
+    DualNumber(7.0, [2. 1.])
+    DualNumber(5.0, [1. 1.])
+
+
 Known problems: We cant calculate hessian when the part of hessian is all 0
-
-
-```python
-
-```
