@@ -98,6 +98,22 @@ class BackNumber(object):
         def g(x, y):
             return (- y / (x * x), 1.0 / x)
         return _define_binary(f, g, self, other)
+
+    def __neg__(self):
+        self.u += 1
+        return BackNumber(-self.x, (self,), (-1.0,))
+
+    # def __lt__(self, other):
+    #     return self.x.__lt__(other)
+
+    # def __gt__(self, other):
+    #     return self.x.__gt__(other)
+
+    # def __le__(self, other):
+    #     return self.x.__le__(other)
+
+    # def __ge__(self, other):
+    #     return self.x.__ge__(other)
     
     def exp(self):
         self.u += 1

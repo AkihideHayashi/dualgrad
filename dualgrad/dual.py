@@ -52,6 +52,9 @@ class DualNumber(object):
         def f(y, dy, x, dx):
             return x ** y, x ** (y - 1) * (x * log(x) * dy + y * dx)
         return _define_binary(f, self, other)
+
+    def __neg__(self):
+        return __class__(-self.real, - self.dual)
         
     def exp(self):
         return __class__(exp(self.real), exp(self.real) * self.dual)
