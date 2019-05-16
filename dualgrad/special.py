@@ -8,7 +8,7 @@ def erf(x):
     if isinstance(x, BackNumber):
         for node in (x,):
             node.u += 1
-        return BackNumber(sp_erf(x.x), (x,), (2*exp(-x.x**2)/sqrt(pi),))
+        return BackNumber(sp_erf(x.func), (2*exp(-x.func**2)/sqrt(pi),), (x,))
     elif isinstance(x, DualNumber):
         return DualNumber(sp_erf(x.real), 2*exp(-x.real**2)/sqrt(pi) * x.dual)
     else:

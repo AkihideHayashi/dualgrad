@@ -1,33 +1,36 @@
 import numpy as np
 from collections import deque
 import sympy
+from .dual import DualNumber
 
 def _define_binary(f, g, x, y):
     if isinstance(y, BackNumber):
-        x.u += 1
-        y.u += 1
-        return BackNumber(f(x.x, y.x), (x, y), (g(x.x, y.x)))
+        return BackNumber(f(x.func, y.func), (g(x.func, y.func)), (x, y))
     else:
-        x.u += 1
-        return BackNumber(f(x.x, y), (x,), (g(x.x, y)[0],))
+        return BackNumber(f(x.func, y), (g(x.func, y)[0],), (x,))
 
 class BackNumber(object):
     """
-    x: the value of this variable
-    g: the gradient of this variable
+    func: the value of this variable
+    grad: the gradient of this variable
     p: the parent nodes
     c: differential coeffients
     u: how many times this variable used
     """
-    def __init__(self, x, parents=(), coefficients=()):
-        self.x = x            # value
-        self.grad = 0.0       # grad
+    def __init__(self, func, coefficients=(), parents=()):
+        for parent in parents:
+            parent.u += 1
+        self.func = func      # value
+        if isinstance(func, DualNumber):
+            self.grad = DualNumber(0.0, 0.0)
+        else:
+            self.grad = 0.0       # grad
         self.p = parents      # parent_nodes
         self.c = coefficients # differential coefficients for parents
         self.u = 0            # how many used. At forward, u+=1 per used. At backward, u-=1 per used. When u==0, grad becomes correct
         
     def __repr__(self):
-        return "{}({})".format(__class__.__name__, self.x)
+        return "{}({})".format(__class__.__name__, self.func)
         
     def __add__(self, other):
         def f(x, y):
@@ -101,31 +104,28 @@ class BackNumber(object):
 
     def __neg__(self):
         self.u += 1
-        return BackNumber(-self.x, (self,), (-1.0,))
+        return BackNumber(-self.func, (-1.0,), (self,))
 
-    # def __lt__(self, other):
-    #     return self.x.__lt__(other)
+    def __lt__(self, other):
+        return self.func.__lt__(other)
 
-    # def __gt__(self, other):
-    #     return self.x.__gt__(other)
+    def __gt__(self, other):
+        return self.func.__gt__(other)
 
-    # def __le__(self, other):
-    #     return self.x.__le__(other)
+    def __le__(self, other):
+        return self.func.__le__(other)
 
-    # def __ge__(self, other):
-    #     return self.x.__ge__(other)
+    def __ge__(self, other):
+        return self.func.__ge__(other)
     
     def exp(self):
-        self.u += 1
-        return BackNumber(np.exp(self.x), (self,), (np.exp(self.x),))
+        return BackNumber(np.exp(self.func), (np.exp(self.func),), (self,))
     
     def log(self):
-        self.u += 1
-        return BackNumber(np.log(self.x), (self,), (1 / self.x,))
+        return BackNumber(np.log(self.func), (1 / self.func,), (self,))
 
     def sqrt(self):
-        self.u += 1
-        return BackNumber(np.sqrt(self.x), (self,), (0.5 * self.x ** (-0.5),))
+        return BackNumber(np.sqrt(self.func), (0.5 * self.func ** (-0.5),), (self,))
     
     def backward(self):
         self.grad = 1.0

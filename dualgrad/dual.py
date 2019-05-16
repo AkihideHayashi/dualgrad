@@ -45,7 +45,7 @@ class DualNumber(object):
     
     def __pow__(self, other):
         def f(x, dx, y, dy):
-            return x ** y, x ** (y - 1) * (x * x.log() * dy + y * dx)
+            return x ** y, x ** (y - 1) * (x * log(x) * dy + y * dx)
         return _define_binary(f, self, other)
     
     def __rpow__(self, other):
@@ -56,6 +56,18 @@ class DualNumber(object):
     def __neg__(self):
         return __class__(-self.real, - self.dual)
         
+    def __lt__(self, other):
+        return self.real.__lt__(other)
+
+    def __gt__(self, other):
+        return self.real.__gt__(other)
+
+    def __le__(self, other):
+        return self.real.__le__(other)
+
+    def __ge__(self, other):
+        return self.real.__ge__(other)
+
     def exp(self):
         return __class__(exp(self.real), exp(self.real) * self.dual)
     

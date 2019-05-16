@@ -9,19 +9,57 @@ So it is usefull when you want to calculate gradient and hessian for scalar func
 
 
 ```python
-from dualgrad import BackNumber, DualNumber, define_function, define_functions, gradient_numerical
+from dualgrad import BackNumber, DualNumber, gradient_numerical, cythonize, pythonize, define_cython, define_python
 ```
 
 BackNumber is Class for backpropergation like Variable in chainer.  
 DualNumber is Class for forwardpropergation using dual number.  
-define_function(s) is a function that help generate function that is compatible for this library.
 
 
 ```python
 import numpy as np
 from numpy import sqrt, exp, log
+import sympy
+from sympy import symbols
 import importlib
 ```
+
+You can calculate gradient using backpropergation.
+
+
+```python
+x = BackNumber(2.0)
+y = BackNumber(3.0)
+z = x * x + 0.5 * y * y + x * y
+print(z.func)
+z.backward()
+print(x.grad, y.grad)
+```
+
+    14.5
+    7.0 5.0
+
+
+z = 14.5, dz/dx = 7.0, dz/dy = 5.0
+
+You can also calculate second derivative using combination of backpropergation and dual number
+
+
+```python
+x = BackNumber(DualNumber(2.0, 1.0))
+y = BackNumber(DualNumber(3.0, 0.0))
+z = x * x + 0.5 * y * y + x * y
+z.backward()
+print(x.grad.dual, y.grad.dual)
+```
+
+    2.0 1.0
+
+
+d^2z/dxdx = 2.0, d^2z/dxdy = 1.0
+
+However, when you construct huge function, creation of function node be able to peformance determining step.  
+So dualgrad supports method for skip the process.
 
 First, you should define your function for sympy.  
 "define_function" uses sympy to differentiate your function analytically.
@@ -29,37 +67,70 @@ First, you should define your function for sympy.
 
 ```python
 def test_function(a, b, c):
-    return (a + b) * c * a
-```
+    return (a + b) * c * a * a + b / c / a + b + c * exp(a) * log(a)
 
-To define your own function, you should use define_function.  
-And we calculate numerical defferential only for tutorial.
-
-
-```python
 print(test_function(2.0, 3.0, 0.3))
 print(gradient_numerical(test_function, (2.0, 3.0, 0.3), dx=1E-6))
 ```
 
-    3.0
-    [2.1000000003379427, 0.6000000001282757, 9.999999999621423]
+    15.536511020591915
+    [7.344869436209933, 3.86666666685187, 8.45503673563286]
 
 
-In this case,
+test function is a function that when
+a = 2.0, b = 3.0, c = 0.3,
+
+test_function(a, b, c) = 15.536511020591915  
+d(test_function)/da ~ 7.344869436209933  
+d(test_function)/db ~ 3.86666666685187  
+d^2(test_function)/dada ~ 11.09904864285131  
+d^2(test_function)/dbda ~ 0.3666666666666666  
 
 
-a = 2.0, b = 3.0, c = 0.3
-test_function(a, b, c) = 3.0  
-d(test_function)/da = 2.1  
-d(test_function)/db = 0.6  
+```python
+a = BackNumber(DualNumber(2.0, 1.0))
+b = BackNumber(DualNumber(3.0, 0.0))
+c = 0.3
+z = test_function(a, b, c)
+z.backward()
+print(z.func.real)
+print(a.grad.real, b.grad.real)
+print(a.grad.dual, b.grad.dual)
+```
 
-You can dump your function to a file if you want.
+    15.536511020591915
+    7.344869435431512 3.866666666666667
+    11.09904864285131 0.3666666666666666
+
+
+However, it is very slow.
+
+
+```python
+%%timeit
+a = BackNumber(DualNumber(2.0, 1.0))
+b = BackNumber(DualNumber(3.0, 0.0))
+c = 0.3
+z = test_function(a, b, c)
+z.backward()
+```
+
+    113 µs ± 6.46 µs per loop (mean ± std. dev. of 7 runs, 10000 loops each)
+
+
+It is possible to simplify and dump funciton.
+
+
+```python
+def test_function(a, b, c):
+    return (a + b) * c * a * a + b / c / a + b + c * sympy.exp(a) * sympy.log(a)
+```
 
 
 ```python
 with open("functions.py", 'w') as f:
-    test_function_definition = define_function("test", test_function, ("a", "b"), ("c",))
-    f.write(define_functions([test_function_definition]))
+    test_function_definition = pythonize("test", test_function, symbols("a, b"), symbols("c,"))
+    f.write(define_python([test_function_definition]))
 ```
 
 
@@ -81,103 +152,54 @@ You can calculate differential of "test" quickly using BackNumber.
 
 
 ```python
-x = BackNumber(2.0)
-y = BackNumber(3.0)
-w = 0.3
-z = test(x, y, w)
-z
-```
-
-
-
-
-    BackNumber(3.0)
-
-
-
-
-```python
+%%timeit
+a = BackNumber(DualNumber(2.0, 1.0))
+b = BackNumber(DualNumber(3.0, 0.0))
+c = 0.3
+z = test(a, b, c)
 z.backward()
 ```
 
-
-```python
-print(x.grad)
-print(y.grad)
-```
-
-    2.1
-    0.6
+    72.9 µs ± 132 ns per loop (mean ± std. dev. of 7 runs, 10000 loops each)
 
 
-If you need part of hessian, you should use DualNumber to initialize BackNumber.
+it is a little faster than doing nothing. However it is not so fast
+
+It is also possible to cythonize function.
 
 
 ```python
-x = BackNumber(DualNumber(2.0, np.array([1.0, 0.0])))
-y = BackNumber(DualNumber(3.0, np.array([0.0, 1.0])))
-w = 0.3
-z = test(x, y, w)
-z
+with open("cfunctions.pyx", 'w') as f:
+    test_function_definition = cythonize("test", test_function, symbols("a, b"), symbols("c,"))
+    f.write(define_cython([test_function_definition]))
 ```
 
 
+```python
+import pyximport; pyximport.install()
+from cfunctions import test
+```
 
-
-    BackNumber(DualNumber(3.0, [2.1 0.6]))
-
+    /Users/akihide/.pyenv/versions/3.7.2/Python.framework/Versions/3.7/lib/python3.7/site-packages/Cython/Compiler/Main.py:367: FutureWarning: Cython directive 'language_level' not set, using 2 for now (Py2). This will change in a later release! File: /Users/akihide/Documents/Development/dualgrad/Desktop/cfunctions.pyx
+      tree = Parsing.p_module(s, pxd, full_module_name)
 
 
 
 ```python
+%%timeit
+a = BackNumber(DualNumber(2.0, 1.0))
+b = BackNumber(DualNumber(3.0, 0.0))
+c = 0.3
+z = test(a, b, c)
 z.backward()
 ```
 
-
-```python
-print(x.grad)
-print(y.grad)
-```
-
-    DualNumber(2.1, [0.6 0.3])
-    DualNumber(0.6, [0.3 0. ])
+    10.4 µs ± 198 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
 
 
-now,  
-d^2z/dx^2 = 0.6  
-d^2z/dxdy = 0.3  
-d^2z/dy^2 = 0.0
-
-While simple operators are implemented. You can skip function_difiner
+cythonize only support DualNumber now. So you can't skip calculating partial hessian.
 
 
 ```python
-x = BackNumber(DualNumber(2.0, np.array([1.0, 0.0])))
-y = BackNumber(DualNumber(3.0, np.array([0.0, 1.0])))
-z = x * x + 0.5 * y * y + x * y
-z
+
 ```
-
-
-
-
-    BackNumber(DualNumber(14.5, [7. 5.]))
-
-
-
-
-```python
-z.backward()
-```
-
-
-```python
-print(x.grad)
-print(y.grad)
-```
-
-    DualNumber(7.0, [2. 1.])
-    DualNumber(5.0, [1. 1.])
-
-
-Known problems: We cant calculate hessian when the part of hessian is all 0
