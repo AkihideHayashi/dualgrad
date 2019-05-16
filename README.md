@@ -143,8 +143,6 @@ importlib.reload(functions)
 
 
 
-    <module 'functions' from '/Users/akihide/Documents/Development/dualgrad/Desktop/functions.py'>
-
 
 
 Now, you imported "test" that is compatible for this library.
