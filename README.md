@@ -61,9 +61,6 @@ d^2z/dxdx = 2.0, d^2z/dxdy = 1.0
 However, when you construct huge function, creation of function node be able to peformance determining step.  
 So dualgrad supports method for skip the process.
 
-First, you should define your function for sympy.  
-"define_function" uses sympy to differentiate your function analytically.
-
 
 ```python
 def test_function(a, b, c):
