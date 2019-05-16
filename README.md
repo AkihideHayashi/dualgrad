@@ -180,10 +180,6 @@ import pyximport; pyximport.install()
 from cfunctions import test
 ```
 
-    /Users/akihide/.pyenv/versions/3.7.2/Python.framework/Versions/3.7/lib/python3.7/site-packages/Cython/Compiler/Main.py:367: FutureWarning: Cython directive 'language_level' not set, using 2 for now (Py2). This will change in a later release! File: /Users/akihide/Documents/Development/dualgrad/Desktop/cfunctions.pyx
-      tree = Parsing.p_module(s, pxd, full_module_name)
-
-
 
 ```python
 %%timeit
